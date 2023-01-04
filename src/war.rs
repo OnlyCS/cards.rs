@@ -1,30 +1,27 @@
 use crate::card::Card;
-use crate::game::Game;
+use crate::game_common::Game;
 use crate::player::{Player, PlayerCard};
-use crate::ui::{header_start, prompt, header_end};
+use crate::ui::{header_end, header_start, prompt};
 
 pub struct War {
-    pub players: Vec<Player>
+    pub players: Vec<Player>,
 }
 
 impl War {
-    pub fn new(player_ct: i32) -> War {
-        header_start();
-        assert!(1 < player_ct, "Must have more than one player");
-        assert!(player_ct < 5, "Must have less than five players");
+    pub fn new(player_names: Vec<String>) -> War {
+        assert!(player_names.len() > 1, "E_NOT_ENOUGH_PLAYERS");
+        assert!(player_names.len() < 5, "E_TOO_MANY_PLAYERS");
 
         let mut players = Vec::new();
         let mut deck = Card::new_deck();
 
-        let cards_per_player = (52.0 / player_ct as f64).floor() as i32;
-        let extra = 52 % player_ct;
+        let cards_per_player = (52.0 / player_names.len() as f64).floor() as i32;
+        let extra = 52 % player_names.len();
 
-        for i in 0..player_ct {
-            let name = prompt(&format!("Enter Player {}'s name: ", i + 1)).trim().to_string();
-
+        for i in 0..player_names.len() {
             players.push(Player::new(
-                name,
-                i,
+                player_names[i].clone(),
+                i.try_into().unwrap(),
                 &mut deck,
                 cards_per_player + i32::from(i < extra),
             ));
@@ -35,7 +32,7 @@ impl War {
 
     pub fn draw(&mut self) -> Vec<PlayerCard> {
         let players = &mut self.players;
-        
+
         let mut out = Vec::new();
         let mut cards = Vec::new();
 
@@ -76,7 +73,10 @@ impl War {
             }
         }
 
-        println!("{} has no more cards and is out of the game!", player.unwrap().name);
+        println!(
+            "{} has no more cards and is out of the game!",
+            player.unwrap().name
+        );
 
         if self.players.len() == 1 {
             self.win_game();
@@ -116,7 +116,12 @@ impl War {
 
                 let cmp_known = cmp.expect("E_UNKNOWN");
 
-                println!("{} drew {} unknown cards and a {}", player.name, draws.len(), cmp_known.card);
+                println!(
+                    "{} drew {} unknown cards and a {}",
+                    player.name,
+                    draws.len(),
+                    cmp_known.card
+                );
 
                 player_draws.push(cmp_known);
                 floor.extend(draws);
@@ -139,12 +144,22 @@ impl War {
 
     fn round_win(&mut self, winner: i32, floor: &mut Vec<PlayerCard>) {
         let players = &mut self.players;
-        let winner = players.iter_mut().find(|e| e.id == winner).expect("E_UNKNOWN");
-        
-        println!("\n{} won the round and gains {} cards!", winner.name, floor.len());
+        let winner = players
+            .iter_mut()
+            .find(|e| e.id == winner)
+            .expect("E_UNKNOWN");
+
+        println!(
+            "\n{} won the round and gains {} cards!",
+            winner.name,
+            floor.len()
+        );
+
         floor.iter().for_each(|e| println!("{}", e.card));
 
-        winner.deck.extend(floor.drain(..).map(|x| x.card).collect::<Vec<Card>>());
+        winner
+            .deck
+            .extend(floor.drain(..).map(|x| x.card).collect::<Vec<Card>>());
     }
 }
 
@@ -153,7 +168,6 @@ impl Game for War {
         header_start();
 
         let mut player_draws = self.draw();
-
 
         player_draws.sort_by(|a, b| b.card.value_id.cmp(&a.card.value_id));
 

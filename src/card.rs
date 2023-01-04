@@ -1,5 +1,8 @@
-use rand::random;
-use std::{error::Error, fmt::{Display, Formatter, self}};
+use rand::{random, seq::SliceRandom, thread_rng};
+use std::{
+    error::Error,
+    fmt::{self, Display, Formatter},
+};
 
 pub trait ValueIDGen {
     fn gen_value_by_id(id: i32) -> Result<String, Box<dyn Error>>;
@@ -21,7 +24,7 @@ impl Card {
             1 => "Hearts",
             2 => "Clubs",
             3 => "Diamonds",
-            _ => return Err(format!("Invalid value value, needed 0-12, got {}", suit_id).into())
+            _ => return Err(format!("Invalid value value, needed 0-12, got {}", suit_id).into()),
         };
         let value = match value_id {
             -1 => "Ace (as 1)",
@@ -38,7 +41,7 @@ impl Card {
             10 => "Queen",
             11 => "King",
             12 => "Ace",
-            _ => return Err(format!("Invalid value value, needed 0-12, got {}", value_id).into())
+            _ => return Err(format!("Invalid value value, needed 0-12, got {}", value_id).into()),
         };
         Ok(Card {
             suit: suit.to_string(),
@@ -55,29 +58,35 @@ impl Card {
         Card::new(suit_id, value_id)
     }
 
-	pub fn new_deck() -> Vec<Card> {
-		let mut deck = Vec::new();
+    pub fn new_deck() -> Vec<Card> {
+        let mut deck = Vec::new();
 
-		for i in 0..4 {
-			for j in 0..13 {
-				deck.push(Card::new(i, j).unwrap());
-			}
-		}
+        for i in 0..4 {
+            for j in 0..13 {
+                deck.push(Card::new(i, j).unwrap());
+            }
+        }
 
-		deck
-	}
+        deck
+    }
 
-	pub fn copy(&self) -> Card {
-		Card {
-			suit: self.suit.clone(),
-			suit_id: self.suit_id,
-			value: self.value.clone(),
-			value_id: self.value_id,
+    pub fn new_random_deck() -> Vec<Card> {
+        let mut deck = Card::new_deck();
+        deck.shuffle(&mut thread_rng());
+
+        deck
+    }
+
+    pub fn copy(&self) -> Card {
+        Card {
+            suit: self.suit.clone(),
+            suit_id: self.suit_id,
+            value: self.value.clone(),
+            value_id: self.value_id,
             visible: self.visible,
-		}
-	}
+        }
+    }
 }
-
 
 impl Display for Card {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {

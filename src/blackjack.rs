@@ -1,37 +1,26 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
-use crate::game::Game;
-use crate::player::Player;
 use crate::card::Card;
+use crate::game_common::Game;
+use crate::player::Player;
 use crate::ui::*;
 
 pub struct BlackJack {
     players: Vec<Player>,
-    deck: Vec<Card>
+    deck: Vec<Card>,
 }
 
 impl BlackJack {
-    pub fn new(player_ct: i32) -> BlackJack {
-        header_start();
-        assert!(1 < player_ct, "Must have more than one player");
-        assert!(player_ct < 5, "Must have less than five players");
+    pub fn new(player_names: Vec<String>) -> BlackJack {
+        assert!(player_names.len() > 1, "E_NOT_ENOUGH_PLAYERS");
+        assert!(player_names.len() < 5, "E_TOO_MANY_PLAYERS");
 
-        let mut deck = Card::new_deck();
         let mut players = Vec::new();
+        let mut deck = Card::new_random_deck();
 
-        for i in 0..player_ct {
-            let name = prompt(&format!("Enter Player {}'s name: ", i + 1)).trim().to_string();
-            let mut player = Player::new(
-                name,
-                i,
-                &mut deck,
-                2
-            );
-
-            player.deck[0].visible = false;
-
-            players.push(player);
+        for i in 0..player_names.len() {
+            players.push(Player::new(player_names[i].clone(), i as i32, &mut deck, 2));
         }
 
         BlackJack { players, deck }
@@ -54,11 +43,20 @@ impl BlackJack {
 
         let player = &mut self.players[player_id as usize];
 
-        let choice = prompt_options(&format!("{}'s turn. What do you want to do?", player.name), &[
-            Option { name: "Hit".to_string(), value: 1 },
-            Option { name: "Stand".to_string(), value: 2 },
-        ]);
-        
+        let choice = prompt_options(
+            &format!("{}'s turn. What do you want to do?", player.name),
+            &[
+                Option {
+                    name: "Hit",
+                    value: 1,
+                },
+                Option {
+                    name: "Stand",
+                    value: 2,
+                },
+            ],
+        );
+
         header_start();
         match choice {
             1 => {
@@ -74,12 +72,12 @@ impl BlackJack {
                 card.visible = false;
                 println!("You drew a {}", card.value);
                 false
-            },
+            }
             2 => {
                 println!("You stood. It is now the next player's turn.");
                 true
-            },
-            _ => panic!("Invalid choice")
+            }
+            _ => panic!("Invalid choice"),
         }
     }
 }
@@ -91,7 +89,7 @@ impl Game for BlackJack {
         for id in player_ids {
             loop {
                 header_start();
-                
+
                 let do_break = self.turn(id);
 
                 if do_break {

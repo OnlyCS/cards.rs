@@ -1,8 +1,8 @@
 use std::io::{self, Write};
 
 pub struct Option {
-    pub name: String,
-    pub value: i32
+    pub name: &'static str,
+    pub value: i32,
 }
 
 pub fn console_clear() {
@@ -38,7 +38,7 @@ pub fn hprompt(ask: &str) -> String {
     header_end();
 
     let res = prompt("");
-	console_clear();
+    console_clear();
 
     res
 }

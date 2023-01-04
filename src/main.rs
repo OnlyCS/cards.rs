@@ -1,11 +1,11 @@
 use crate::blackjack::BlackJack;
-use crate::game::Game;
+use crate::game_common::{get_player_names, Game};
 use crate::ui::{console_clear, header_end, header_start, hprompt, prompt, prompt_options, Option};
 use crate::war::War;
 
 pub mod blackjack;
 pub mod card;
-pub mod game;
+pub mod game_common;
 pub mod player;
 pub mod ui;
 pub mod war;
@@ -17,21 +17,22 @@ fn main() {
         "Which game to play?",
         &[
             Option {
-                name: "War".to_string(),
+                name: "War",
                 value: 1,
             },
             Option {
-                name: "Blackjack".to_string(),
+                name: "BlackJack",
                 value: 2,
             },
         ],
     );
 
-    let max_players = hprompt("How many players?");
+    let player_ct = hprompt("How many players?").trim().parse().unwrap();
+    let player_names = get_player_names(player_ct);
 
     let mut game: Box<dyn Game> = match game_id {
-        1 => Box::new(War::new(max_players.trim().parse().unwrap())),
-        2 => Box::new(BlackJack::new(max_players.trim().parse().unwrap())),
+        1 => Box::new(War::new(player_names)),
+        2 => Box::new(BlackJack::new(player_names)),
         _ => panic!("E_INVALID_GAME"),
     };
 
@@ -42,7 +43,7 @@ fn main() {
         println!("{}", player.name);
     }
 
-    println!("\n{} total", max_players.trim().parse::<i32>().unwrap());
+    println!("\n{} total", player_ct);
     header_end();
     prompt("Press enter to continue...");
 
