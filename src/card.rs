@@ -1,5 +1,5 @@
 use rand::random;
-use std::{error::Error};
+use std::{error::Error, fmt::{Display, Formatter, self}};
 
 #[derive(Clone)]
 pub struct Card {
@@ -16,23 +16,23 @@ impl Card {
             1 => "Hearts",
             2 => "Clubs",
             3 => "Diamonds",
-            _ => return Err(format!("Invalid value value, needed 0-12, got {}", suit_id).into()),
+            _ => return Err(format!("Invalid value value, needed 0-12, got {}", suit_id).into())
         };
         let value = match value_id {
-            0 => "Ace",
-            1 => "2",
-            2 => "3",
-            3 => "4",
-            4 => "5",
-            5 => "6",
-            6 => "7",
-            7 => "8",
-            8 => "9",
-            9 => "10",
-            10 => "Jack",
-            11 => "Queen",
-            12 => "King",
-            _ => return Err(format!("Invalid value value, needed 0-12, got {}", value_id).into()),
+            0 => "2",
+            1 => "3",
+            2 => "4",
+            3 => "5",
+            4 => "6",
+            5 => "7",
+            6 => "8",
+            7 => "9",
+            8 => "10",
+            9 => "Jack",
+            10 => "Queen",
+            11 => "King",
+            12 => "Ace",
+            _ => return Err(format!("Invalid value value, needed 0-12, got {}", value_id).into())
         };
         Ok(Card {
             suit: suit.to_string(),
@@ -60,7 +60,7 @@ impl Card {
 		deck
 	}
 
-	pub fn clone(&self) -> Card {
+	pub fn copy(&self) -> Card {
 		Card {
 			suit: self.suit.clone(),
 			suit_id: self.suit_id,
@@ -68,8 +68,11 @@ impl Card {
 			value_id: self.value_id,
 		}
 	}
+}
 
-	pub fn to_string(&self) -> String {
-		format!("{} of {}", self.value, self.suit)
-	}
+
+impl Display for Card {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{} of {}", self.value, self.suit)
+    }
 }

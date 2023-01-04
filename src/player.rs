@@ -11,9 +11,10 @@ pub struct Player {
     pub id: i32,
 }
 
+#[derive(Clone)]
 pub struct PlayerCard {
 	pub card: Card,
-	pub player_id: i32,
+	pub player_id: i32
 }
 
 impl Player {
@@ -29,11 +30,11 @@ impl Player {
         Player {
             id,
             deck,
-            name: name,
+            name
         }
     }
 
-	pub fn clone(&self) -> Player {
+	pub fn copy(&self) -> Player {
 		Player {
 			id: self.id,
 			deck: self.deck.clone(),
@@ -42,7 +43,7 @@ impl Player {
 	}
 
 	pub fn draw(&mut self) -> Result<PlayerCard, Box<dyn Error>> {
-		if self.deck.len() == 0 {
+		if self.deck.is_empty() {
 			return Err("Not enough cards".into())
 		}
 
@@ -67,7 +68,32 @@ impl Player {
 		Ok(cards)
 	}
 
+	pub fn fdraw_all(&mut self, ct: i32) -> Vec<PlayerCard> {
+		let mut cards = Vec::new();
+
+		for _ in 0..ct {
+			if self.deck.is_empty() {
+				break;
+			}
+
+			let card = self.draw().unwrap();
+			cards.push(card);
+		}
+
+		cards
+	}
+
 	pub fn give(&mut self, card: Card) {
 		self.deck.push(card);
 	}
+
+	pub fn player_index(players: &[Player], id: i32) -> Option<usize> {
+        for (i, player) in players.iter().enumerate() {
+			if player.id == id {
+				return Some(i);
+			}
+		}
+
+        None
+    }
 }

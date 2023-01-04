@@ -1,40 +1,32 @@
-use std::io::{self, Write};
-
-use crate::game::Game;
-use crate::ui::console_clear;
+use crate::war::War;
+use crate::ui::{console_clear, hprompt, header_end, header_start, prompt};
 
 pub mod card;
-pub mod game;
+pub mod war;
 pub mod player;
 pub mod ui;
 
 fn main() {
     console_clear();
 
-    let mut max_players = String::new();
+    let max_players = hprompt("How many players?");
+    let mut game = War::new(max_players.trim().parse().unwrap());
 
-    print!("How many players? ");
-
-    io::stdout().flush().unwrap();
-    io::stdin().read_line(&mut max_players).unwrap();
-
-	console_clear();
-
-    let mut game = Game::new(max_players.trim().parse().unwrap());
-
-    console_clear();
-    println!("{}\n\nPlayers:", "-".to_string().repeat(20));
+    header_start();
+    println!("Players:");
 
     for player in &game.players {
         println!("{}", player.name);
     }
 
     println!("\n{} total", max_players.trim().parse::<i32>().unwrap());
-    println!("\n{}\nPress enter to continue", "-".to_string().repeat(20));
-
-    io::stdout().flush().unwrap();
-    io::stdin().read_line(&mut String::new()).unwrap();
+    header_end();
+    prompt("Press enter to continue...");
 
     console_clear();
-    game.round();
+
+    loop {
+        game.round();
+        console_clear();
+    }
 }
