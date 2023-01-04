@@ -1,7 +1,16 @@
 use std::io::{self, Write};
 
+pub struct Option {
+    pub name: String,
+    pub value: i32
+}
+
 pub fn console_clear() {
     print!("\x1B[2J\x1B[1;1H");
+}
+
+pub fn header_start_no_clear() {
+    println!("{}\n", "---".to_string().repeat(20));
 }
 
 pub fn header_start() {
@@ -36,4 +45,34 @@ pub fn hprompt(ask: &str) -> String {
 
 pub fn promptln(ask: &str) -> String {
     prompt(&format!("{}\n", ask))
+}
+
+pub fn prompt_options(ask: &str, options: &[Option]) -> i32 {
+    header_start();
+    println!("{}", ask);
+
+    for option in options {
+        println!("{}) {}", option.value, option.name);
+    }
+
+    header_end();
+
+    let res = prompt("").trim().parse().unwrap();
+    console_clear();
+
+    res
+}
+
+pub fn prompt_options_no_clear(ask: &str, options: &[Option]) -> i32 {
+    println!("{}", ask);
+
+    for option in options {
+        println!("{}) {}", option.value, option.name);
+    }
+
+    header_end();
+
+    let res = prompt("").trim().parse().unwrap();
+
+    res
 }

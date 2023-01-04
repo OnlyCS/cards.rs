@@ -1,4 +1,5 @@
 use crate::card::Card;
+use crate::game::Game;
 use crate::player::{Player, PlayerCard};
 use crate::ui::{header_start, prompt, header_end};
 
@@ -7,16 +8,18 @@ pub struct War {
 }
 
 impl War {
-    pub fn new(max_players: i32) -> War {
+    pub fn new(player_ct: i32) -> War {
         header_start();
+        assert!(1 < player_ct, "Must have more than one player");
+        assert!(player_ct < 5, "Must have less than five players");
 
         let mut players = Vec::new();
         let mut deck = Card::new_deck();
 
-        let cards_per_player = (52.0 / max_players as f64).floor() as i32;
-        let extra = 52 % max_players;
+        let cards_per_player = (52.0 / player_ct as f64).floor() as i32;
+        let extra = 52 % player_ct;
 
-        for i in 0..max_players {
+        for i in 0..player_ct {
             let name = prompt(&format!("Enter Player {}'s name: ", i + 1)).trim().to_string();
 
             players.push(Player::new(
@@ -143,8 +146,10 @@ impl War {
 
         winner.deck.extend(floor.drain(..).map(|x| x.card).collect::<Vec<Card>>());
     }
-    
-    pub fn round(&mut self) {
+}
+
+impl Game for War {
+    fn round(&mut self) {
         header_start();
 
         let mut player_draws = self.draw();
@@ -175,5 +180,9 @@ impl War {
 
         header_end();
         prompt("Press enter to continue...");
+    }
+
+    fn get_players(&self) -> &Vec<Player> {
+        &self.players
     }
 }

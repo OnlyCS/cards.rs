@@ -1,12 +1,17 @@
 use rand::random;
 use std::{error::Error, fmt::{Display, Formatter, self}};
 
+pub trait ValueIDGen {
+    fn gen_value_by_id(id: i32) -> Result<String, Box<dyn Error>>;
+}
+
 #[derive(Clone)]
 pub struct Card {
     pub suit: String,
     pub suit_id: i32,
     pub value: String,
     pub value_id: i32,
+    pub visible: bool,
 }
 
 impl Card {
@@ -19,6 +24,7 @@ impl Card {
             _ => return Err(format!("Invalid value value, needed 0-12, got {}", suit_id).into())
         };
         let value = match value_id {
+            -1 => "Ace (as 1)",
             0 => "2",
             1 => "3",
             2 => "4",
@@ -39,6 +45,7 @@ impl Card {
             suit_id,
             value: value.to_string(),
             value_id,
+            visible: true,
         })
     }
 
@@ -66,6 +73,7 @@ impl Card {
 			suit_id: self.suit_id,
 			value: self.value.clone(),
 			value_id: self.value_id,
+            visible: self.visible,
 		}
 	}
 }
