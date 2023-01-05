@@ -19,14 +19,35 @@ pub struct Card {
 
 impl Card {
     pub fn new(suit_id: i32, value_id: i32) -> Result<Card, Box<dyn Error>> {
-        let suit = match suit_id {
+        let mut card = Card {
+            suit: String::new(),
+            suit_id,
+            value: String::new(),
+            value_id,
+            visible: true,
+        };
+
+        card.refresh().unwrap();
+        Ok(card)
+    }
+
+    pub fn new_random() -> Result<Card, Box<dyn Error>> {
+        let suit_id = random::<i32>() % 4;
+        let value_id = random::<i32>() % 13;
+        Card::new(suit_id, value_id)
+    }
+
+    pub fn refresh(&mut self) -> Result<(), Box<dyn Error>> {
+        self.suit = match self.suit_id {
             0 => "Spades",
             1 => "Hearts",
             2 => "Clubs",
             3 => "Diamonds",
-            _ => return Err(format!("Invalid value value, needed 0-12, got {}", suit_id).into()),
-        };
-        let value = match value_id {
+            _ => return Err("E_INVALID_SUIT".into()),
+        }
+        .to_string();
+
+        self.value = match self.value_id {
             -1 => "Ace (as 1)",
             0 => "2",
             1 => "3",
@@ -41,21 +62,11 @@ impl Card {
             10 => "Queen",
             11 => "King",
             12 => "Ace",
-            _ => return Err(format!("Invalid value value, needed 0-12, got {}", value_id).into()),
-        };
-        Ok(Card {
-            suit: suit.to_string(),
-            suit_id,
-            value: value.to_string(),
-            value_id,
-            visible: true,
-        })
-    }
+            _ => return Err("E_INVALID_VALUE".into()),
+        }
+        .to_string();
 
-    pub fn new_random() -> Result<Card, Box<dyn Error>> {
-        let suit_id = random::<i32>() % 4;
-        let value_id = random::<i32>() % 13;
-        Card::new(suit_id, value_id)
+        Ok(())
     }
 
     pub fn new_deck() -> Vec<Card> {

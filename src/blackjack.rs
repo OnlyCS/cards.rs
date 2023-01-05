@@ -19,8 +19,11 @@ impl BlackJack {
         let mut players = Vec::new();
         let mut deck = Card::new_random_deck();
 
-        for i in 0..player_names.len() {
-            players.push(Player::new(player_names[i].clone(), i as i32, &mut deck, 2));
+        for (i, name) in player_names.iter().enumerate() {
+            let mut player = Player::new(name.to_string(), i as i32, &mut deck, 2);
+            player.deck[1].visible = false;
+
+            players.push(player);
         }
 
         BlackJack { players, deck }
@@ -38,13 +41,58 @@ impl BlackJack {
         }
     }
 
+    fn handle_hit(&mut self, player_id: i32) -> bool {
+        let player = self.players.iter_mut().find(|p| p.id == player_id).unwrap();
+
+        let mut hand_total: i32 = player.deck.iter().map(|x| x.value_id).sum();
+
+        let card = match self.deck.pop() {
+            Some(x) => x,
+            None => {
+                self.deck = Card::new_deck();
+                self.deck.shuffle(&mut thread_rng());
+                self.deck.pop().unwrap()
+            }
+        };
+
+        let card_value = match card.value_id {
+            -1 => 1,
+            0..=8 => card.value_id + 2,
+            9..=11 => 10,
+            12 => {
+                let val = prompt!("Ace value (Current total {}, 1 or 11):", hand_total)
+                    .trim()
+                    .parse()
+                    .unwrap();
+
+                assert!(val == 1 || val == 11, "E_INVALID_ACE_VALUE");
+
+                val
+            }
+            _ => panic!("E_INVALID_CARD_VALUE"),
+        };
+
+        hand_total += card_value;
+
+        if hand_total > 21 {
+            println!("You busted!");
+            true
+        } else {
+            println!("Your hand total is now {}", hand_total);
+            player.deck.push(card);
+            false
+        }
+    }
+
     fn turn(&mut self, player_id: i32) -> bool {
         self.print_player_cards();
 
-        let player = &mut self.players[player_id as usize];
+        let player_index = Player::player_index(&self.players, player_id).expect("E_UNKNOWN");
+        let player = &self.players[player_index];
 
-        let choice = prompt_options(
-            &format!("{}'s turn. What do you want to do?", player.name),
+        println!();
+        let choice = prompt_options!(
+            format!("{}'s turn. What do you want to do?", player.name),
             &[
                 Option {
                     name: "Hit",
@@ -54,23 +102,20 @@ impl BlackJack {
                     name: "Stand",
                     value: 2,
                 },
-            ],
+            ]
         );
 
-        header_start();
+        console_clear!();
+        header_start!();
         match choice {
             1 => {
-                let mut card = match self.deck.pop() {
-                    Some(x) => x,
-                    None => {
-                        self.deck = Card::new_deck();
-                        self.deck.shuffle(&mut thread_rng());
-                        self.deck.pop().unwrap()
-                    }
-                };
+                let busted = self.handle_hit(player_id);
 
-                card.visible = false;
-                println!("You drew a {}", card.value);
+                if busted {
+                    self.players.retain(|x| x.id != player_id);
+                    return true;
+                }
+
                 false
             }
             2 => {
@@ -88,16 +133,17 @@ impl Game for BlackJack {
 
         for id in player_ids {
             loop {
-                header_start();
+                console_clear!();
+                header_start!();
 
                 let do_break = self.turn(id);
+
+                header_end!();
+                prompt!("Press enter to continue");
 
                 if do_break {
                     break;
                 }
-
-                header_end();
-                prompt("Press enter to continue");
             }
         }
     }

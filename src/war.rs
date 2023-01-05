@@ -18,9 +18,9 @@ impl War {
         let cards_per_player = (52.0 / player_names.len() as f64).floor() as i32;
         let extra = 52 % player_names.len();
 
-        for i in 0..player_names.len() {
+        for (i, name) in player_names.iter().enumerate() {
             players.push(Player::new(
-                player_names[i].clone(),
+                name.to_string(),
                 i.try_into().unwrap(),
                 &mut deck,
                 cards_per_player + i32::from(i < extra),
@@ -58,8 +58,8 @@ impl War {
         let winner = &self.players[0];
 
         println!("{} wins the game!", winner.name);
-        header_end();
-        prompt("Press enter to exit");
+        header_end!();
+        prompt!("Press enter to exit");
         std::process::exit(0);
     }
 
@@ -165,7 +165,7 @@ impl War {
 
 impl Game for War {
     fn round(&mut self) {
-        header_start();
+        header_start!();
 
         let mut player_draws = self.draw();
 
@@ -192,8 +192,8 @@ impl Game for War {
         let sum: usize = self.players.iter().map(|x| x.deck.len()).sum();
         assert_eq!(sum, 52);
 
-        header_end();
-        prompt("Press enter to continue...");
+        header_end!();
+        prompt!("Press enter to continue...");
     }
 
     fn get_players(&self) -> &Vec<Player> {

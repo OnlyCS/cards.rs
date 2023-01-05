@@ -1,6 +1,6 @@
 use crate::blackjack::BlackJack;
 use crate::game_common::{get_player_names, Game};
-use crate::ui::{console_clear, header_end, header_start, hprompt, prompt, prompt_options, Option};
+use crate::ui::*;
 use crate::war::War;
 
 pub mod blackjack;
@@ -11,9 +11,9 @@ pub mod ui;
 pub mod war;
 
 fn main() {
-    console_clear();
+    console_clear!();
 
-    let game_id = prompt_options(
+    let game_id = prompt_options!(
         "Which game to play?",
         &[
             Option {
@@ -24,10 +24,11 @@ fn main() {
                 name: "BlackJack",
                 value: 2,
             },
-        ],
+        ]
     );
 
-    let player_ct = hprompt("How many players?").trim().parse().unwrap();
+    console_clear!();
+    let player_ct = prompt_headers!("How many players?").trim().parse().unwrap();
     let player_names = get_player_names(player_ct);
 
     let mut game: Box<dyn Game> = match game_id {
@@ -36,7 +37,8 @@ fn main() {
         _ => panic!("E_INVALID_GAME"),
     };
 
-    header_start();
+    console_clear!();
+    header_start!();
     println!("Players:");
 
     for player in game.get_players() {
@@ -44,13 +46,11 @@ fn main() {
     }
 
     println!("\n{} total", player_ct);
-    header_end();
-    prompt("Press enter to continue...");
-
-    console_clear();
+    header_end!();
+    prompt!("Press enter to continue...");
 
     loop {
+        console_clear!();
         game.round();
-        console_clear();
     }
 }

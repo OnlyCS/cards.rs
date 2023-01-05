@@ -7,19 +7,20 @@ pub trait Game {
 }
 
 pub fn get_player_names(player_ct: i32) -> Vec<String> {
-    header_start();
+    console_clear!();
+    header_start!();
 
     let mut names = Vec::new();
 
     for i in 0..player_ct {
-        let name = prompt(&format!("Enter Player {}'s name: ", i + 1))
+        let name = prompt!("Enter Player {}'s name: ", i + 1)
             .trim()
             .to_string();
 
         names.push(name);
     }
 
-    console_clear();
+    console_clear!();
 
     names
 }

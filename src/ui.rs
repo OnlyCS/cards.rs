@@ -1,78 +1,89 @@
-use std::io::{self, Write};
+use std::io::{stdin, stdout, Write};
 
 pub struct Option {
     pub name: &'static str,
     pub value: i32,
 }
 
-pub fn console_clear() {
-    print!("\x1B[2J\x1B[1;1H");
-}
-
-pub fn header_start_no_clear() {
-    println!("{}\n", "---".to_string().repeat(20));
-}
-
-pub fn header_start() {
-    console_clear();
-    println!("{}\n", "---".to_string().repeat(20));
-}
-
-pub fn header_end() {
-    println!("\n{}", "---".to_string().repeat(20));
-}
-
-pub fn prompt(ask: &str) -> String {
-    print!("{}", ask);
-    io::stdout().flush().unwrap();
-
-    let mut value = "".to_string();
-    io::stdin().read_line(&mut value).unwrap();
+pub(super) fn promptfn() -> String {
+    let mut value = String::new();
+    stdout().flush().unwrap();
+    stdin().read_line(&mut value).unwrap();
 
     value
 }
 
-pub fn hprompt(ask: &str) -> String {
-    header_start();
-    println!("{}", ask);
-    header_end();
-
-    let res = prompt("");
-    console_clear();
-
-    res
+macro_rules! console_clear {
+    () => {
+        print!("\x1B[2J\x1B[1;1H");
+    };
 }
 
-pub fn promptln(ask: &str) -> String {
-    prompt(&format!("{}\n", ask))
+macro_rules! header_start {
+    () => {
+        println!("{}\n", "---".to_string().repeat(20));
+    };
+
+    ($clear:expr) => {
+        if !$clear {
+            console_clear!();
+            header_start!();
+        } else {
+            header_start!();
+        }
+    };
 }
 
-pub fn prompt_options(ask: &str, options: &[Option]) -> i32 {
-    header_start();
-    println!("{}", ask);
-
-    for option in options {
-        println!("{}) {}", option.value, option.name);
-    }
-
-    header_end();
-
-    let res = prompt("").trim().parse().unwrap();
-    console_clear();
-
-    res
+macro_rules! header_end {
+    () => {
+        println!("\n{}", "---".to_string().repeat(20));
+    };
 }
 
-pub fn prompt_options_no_clear(ask: &str, options: &[Option]) -> i32 {
-    println!("{}", ask);
+macro_rules! prompt {
+	($($args:tt)*) => {{
+		let formatted = std::fmt::format(format_args!($($args)*));
 
-    for option in options {
-        println!("{}) {}", option.value, option.name);
-    }
+		print!("{}", formatted);
+		let value = crate::ui::promptfn();
 
-    header_end();
-
-    let res = prompt("").trim().parse().unwrap();
-
-    res
+		value
+	}};
 }
+
+macro_rules! prompt_options {
+    ($ask:expr, $options:expr) => {{
+        header_start!();
+        println!("{}", $ask);
+        for option in $options {
+            println!("{}) {}", option.value, option.name);
+        }
+        header_end!();
+
+        let res: i32 = prompt!("").trim().parse().unwrap();
+        assert!($options.iter().any(|x| x.value == res), "E_INVALID_OPTION");
+
+        res
+    }};
+}
+
+macro_rules! prompt_headers {
+	($($args:tt)*) => {{
+		let formatted = std::fmt::format(format_args!($($args)*));
+
+		header_start!();
+		println!("{}", formatted);
+		header_end!();
+
+		let res = prompt!("");
+
+		res
+	}};
+}
+
+pub(crate) use console_clear;
+pub(crate) use header_end;
+pub(crate) use header_start;
+pub(crate) use prompt;
+pub(crate) use prompt_headers;
+pub(crate) use prompt_options;
