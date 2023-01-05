@@ -17,11 +17,24 @@ impl BlackJack {
         assert!(player_names.len() < 5, "E_TOO_MANY_PLAYERS");
 
         let mut players = Vec::new();
-        let mut deck = Card::new_random_deck();
+        let mut deck = Card::new_deck_blackjack();
 
         for (i, name) in player_names.iter().enumerate() {
             let mut player = Player::new(name.to_string(), i as i32, &mut deck, 2);
-            player.deck[1].visible = false;
+            let hand_total: i32 = player.deck.iter().map(|x| x.blackjack_cmp_val().unwrap()).sum();
+        
+            for card in player.deck.iter_mut() {
+                if card.value_id == 14 {
+                    card.value_id = match BlackJack::redef_ace(name.to_string(), hand_total-11) {
+                        1 => 1,
+                        11 => 14,
+                        _ => panic!("E_INVALID_VALUE"),
+                    };
+
+                    card.refresh_blackjack().unwrap();
+                }
+            }
+            player.deck[0].visible = false;
 
             players.push(player);
         }
@@ -29,24 +42,46 @@ impl BlackJack {
         BlackJack { players, deck }
     }
 
-    fn print_player_cards(&self) {
+    fn print_player_cards(&self, player_id: i32) {
         for player in &self.players {
-            print!("{} has:", player.name);
+            print!("{} has: ", player.name);
 
-            for card in &player.deck {
-                print!(" {}", if card.visible { &card.value } else { "Unknown" });
+            if let Some(first_card) = player.deck.first() {
+                let card_value = if first_card.visible || player.id == player_id {
+                    &first_card.value
+                } else {
+                    "Unknown"
+                };
+
+                print!("{}", card_value);
+
+                for card in player.deck.iter().skip(1) {
+                    let card_value = if card.visible || player.id == player_id {
+                        &card.value
+                    } else {
+                        "Unknown"
+                    };
+
+                    print!(", {}", card_value);
+                }
             }
 
             println!();
         }
     }
 
+    pub fn redef_ace(player_name: String, hand_total: i32) -> i32 {
+        let value = prompt!("{}, you have an ace. Your current hand total is {}. What do you want it to be worth (1 or 11)? ",  player_name, hand_total).trim().parse().unwrap();
+
+        assert!(value == 1 || value == 11, "E_INVALID_VALUE");
+        value
+    }
+
     fn handle_hit(&mut self, player_id: i32) -> bool {
         let player = self.players.iter_mut().find(|p| p.id == player_id).unwrap();
-
         let mut hand_total: i32 = player.deck.iter().map(|x| x.value_id).sum();
 
-        let card = match self.deck.pop() {
+        let mut card = match self.deck.pop() {
             Some(x) => x,
             None => {
                 self.deck = Card::new_deck();
@@ -55,22 +90,15 @@ impl BlackJack {
             }
         };
 
-        let card_value = match card.value_id {
-            -1 => 1,
-            0..=8 => card.value_id + 2,
-            9..=11 => 10,
-            12 => {
-                let val = prompt!("Ace value (Current total {}, 1 or 11):", hand_total)
-                    .trim()
-                    .parse()
-                    .unwrap();
+        
 
-                assert!(val == 1 || val == 11, "E_INVALID_ACE_VALUE");
-
-                val
-            }
-            _ => panic!("E_INVALID_CARD_VALUE"),
+        let card_value = if card.value_id == 14 {
+            BlackJack::redef_ace(player.name.to_string(), hand_total)
+        } else {
+            card.value_id
         };
+        card.value_id = card_value;
+        card.refresh_blackjack().unwrap();
 
         hand_total += card_value;
 
@@ -85,7 +113,7 @@ impl BlackJack {
     }
 
     fn turn(&mut self, player_id: i32) -> bool {
-        self.print_player_cards();
+        self.print_player_cards(player_id);
 
         let player_index = Player::player_index(&self.players, player_id).expect("E_UNKNOWN");
         let player = &self.players[player_index];
