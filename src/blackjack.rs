@@ -87,6 +87,10 @@ impl BlackJack {
                 }
             }
         }
+
+        for player in &self.busted_players {
+            println!("{}: busted with a total of {}", player.name, BlackJack::get_hand_total(&player.deck));
+        }
     }
 
     pub fn redef_ace(player_name: String, hand_total: i32) -> i32 {
@@ -125,8 +129,10 @@ impl BlackJack {
                 "You busted with a {} and a total of {}",
                 card.value, hand_total
             );
-            self.busted_players
-                .push(players.remove(Player::player_index(players, player.id).unwrap()));
+            let mut player = players.remove(Player::player_index(players, player.id).unwrap());
+            player.deck.push(card);
+            self.busted_players.push(player);
+
             None
         } else {
             println!("Your hand total is now {}", hand_total);
@@ -205,27 +211,27 @@ impl Game for BlackJack {
         }
 
         let post_players = &mut self.players;
-        let mut winners = Vec::new();
-
-        post_players.sort_by(|a, b| {
-            BlackJack::get_hand_total(&b.deck).cmp(&BlackJack::get_hand_total(&a.deck))
-        });
-
-        let highest = BlackJack::get_hand_total(&post_players[0].deck);
-
-        for player in post_players {
-            if BlackJack::get_hand_total(&player.deck) == highest {
-                winners.push(player);
-            }
-        }
 
         console_clear!();
         header_start!();
-        if winners.is_empty() {
+        if post_players.is_empty() {
             println!("There were no winners, all of them busted");
         } else {
-            println!("Winners are:");
+            let mut winners = Vec::new();
 
+            post_players.sort_by(|a, b| {
+                BlackJack::get_hand_total(&b.deck).cmp(&BlackJack::get_hand_total(&a.deck))
+            });
+    
+            let highest = BlackJack::get_hand_total(&post_players[0].deck);
+    
+            for player in post_players {
+                if BlackJack::get_hand_total(&player.deck) == highest {
+                    winners.push(player);
+                }
+            }
+
+            println!("Winners are:");
             for player in winners {
                 println!(
                     "{} with a total score of {}",
@@ -237,6 +243,7 @@ impl Game for BlackJack {
 
         header_end!();
         prompt!("Press enter to exit...");
+        console_clear!();
 
         std::process::exit(0);
     }

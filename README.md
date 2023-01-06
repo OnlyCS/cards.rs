@@ -1,2 +1,3 @@
-# war-rust
-War (card-game) in rust ig
+# card.rs
+
+Some simple card games in Rust, because I wanted to learn Rust.
