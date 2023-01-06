@@ -8,6 +8,7 @@ use crate::ui::*;
 
 pub struct BlackJack {
     players: Vec<Player>,
+    busted_players: Vec<Player>,
     deck: Vec<Card>,
 }
 
@@ -18,14 +19,19 @@ impl BlackJack {
 
         let mut players = Vec::new();
         let mut deck = Card::new_deck_blackjack();
+        let busted_players = Vec::new();
 
         for (i, name) in player_names.iter().enumerate() {
             let mut player = Player::new(name.to_string(), i as i32, &mut deck, 2);
-            let hand_total: i32 = player.deck.iter().map(|x| x.blackjack_cmp_val().unwrap()).sum();
-        
+            let hand_total: i32 = player
+                .deck
+                .iter()
+                .map(|x| x.blackjack_cmp_val().unwrap())
+                .sum();
+
             for card in player.deck.iter_mut() {
                 if card.value_id == 14 {
-                    card.value_id = match BlackJack::redef_ace(name.to_string(), hand_total-11) {
+                    card.value_id = match BlackJack::redef_ace(name.to_string(), hand_total - 11) {
                         1 => 1,
                         11 => 14,
                         _ => panic!("E_INVALID_VALUE"),
@@ -39,34 +45,47 @@ impl BlackJack {
             players.push(player);
         }
 
-        BlackJack { players, deck }
+        BlackJack {
+            players,
+            deck,
+            busted_players,
+        }
     }
 
     fn print_player_cards(&self, player_id: i32) {
         for player in &self.players {
             print!("{} has: ", player.name);
 
-            if let Some(first_card) = player.deck.first() {
-                let card_value = if first_card.visible || player.id == player_id {
-                    &first_card.value
+            // print player.deck[i].value with proper comma and "and" logic
+            for (i, card) in player.deck.iter().enumerate() {
+                let mut card_value = if card.visible || player.id == player_id {
+                    match card
+                        .value
+                        .chars()
+                        .next()
+                        .unwrap()
+                        .to_lowercase()
+                        .to_string()
+                        .as_str()
+                    {
+                        "a" | "e" | "i" | "o" | "u" => format!("an {}", card.value),
+                        _ => format!("a {}", card.value),
+                    }
                 } else {
-                    "Unknown"
+                    "a face-down card".to_string()
                 };
 
-                print!("{}", card_value);
+                // if i is 0, make the first letter in card_value uppercase, then set it to card_value
+                if i == 0 {
+                    card_value = card_value.remove(0).to_uppercase().to_string() + &card_value;
+                }
 
-                for card in player.deck.iter().skip(1) {
-                    let card_value = if card.visible || player.id == player_id {
-                        &card.value
-                    } else {
-                        "Unknown"
-                    };
-
-                    print!(", {}", card_value);
+                if i == player.deck.len() - 1 {
+                    println!("and {}", card_value);
+                } else {
+                    print!("{}, ", card_value);
                 }
             }
-
-            println!();
         }
     }
 
@@ -77,9 +96,10 @@ impl BlackJack {
         value
     }
 
-    fn handle_hit(&mut self, player_id: i32) -> bool {
-        let player = self.players.iter_mut().find(|p| p.id == player_id).unwrap();
-        let mut hand_total: i32 = player.deck.iter().map(|x| x.value_id).sum();
+    fn handle_hit(&mut self, player_id: i32) -> std::option::Option<Card> {
+        let players = &mut self.players;
+        let player = players.iter().find(|p| p.id == player_id).unwrap();
+        let mut hand_total: i32 = BlackJack::get_hand_total(&player.deck);
 
         let mut card = match self.deck.pop() {
             Some(x) => x,
@@ -90,12 +110,10 @@ impl BlackJack {
             }
         };
 
-        
-
         let card_value = if card.value_id == 14 {
             BlackJack::redef_ace(player.name.to_string(), hand_total)
         } else {
-            card.value_id
+            BlackJack::get_hand_total(&[card.clone()])
         };
         card.value_id = card_value;
         card.refresh_blackjack().unwrap();
@@ -103,12 +121,16 @@ impl BlackJack {
         hand_total += card_value;
 
         if hand_total > 21 {
-            println!("You busted!");
-            true
+            println!(
+                "You busted with a {} and a total of {}",
+                card.value, hand_total
+            );
+            self.busted_players
+                .push(players.remove(Player::player_index(players, player.id).unwrap()));
+            None
         } else {
             println!("Your hand total is now {}", hand_total);
-            player.deck.push(card);
-            false
+            Some(card)
         }
     }
 
@@ -120,7 +142,11 @@ impl BlackJack {
 
         println!();
         let choice = prompt_options!(
-            format!("{}'s turn. What do you want to do?", player.name),
+            format!(
+                "{}'s turn. Your total is {}. What do you want to do?",
+                player.name,
+                BlackJack::get_hand_total(&player.deck)
+            ),
             &[
                 Option {
                     name: "Hit",
@@ -137,21 +163,24 @@ impl BlackJack {
         header_start!();
         match choice {
             1 => {
-                let busted = self.handle_hit(player_id);
-
-                if busted {
-                    self.players.retain(|x| x.id != player_id);
+                if let Some(card) = self.handle_hit(player_id) {
+                    self.players[player_index].deck.push(card);
+                } else {
                     return true;
                 }
 
                 false
             }
             2 => {
-                println!("You stood. It is now the next player's turn.");
+                println!("You stood.");
                 true
             }
             _ => panic!("Invalid choice"),
         }
+    }
+
+    fn get_hand_total(hand: &[Card]) -> i32 {
+        hand.iter().map(|i| i.blackjack_cmp_val().unwrap()).sum()
     }
 }
 
@@ -167,13 +196,49 @@ impl Game for BlackJack {
                 let do_break = self.turn(id);
 
                 header_end!();
-                prompt!("Press enter to continue");
+                prompt!("Press enter to continue...");
 
                 if do_break {
                     break;
                 }
             }
         }
+
+        let post_players = &mut self.players;
+        let mut winners = Vec::new();
+
+        post_players.sort_by(|a, b| {
+            BlackJack::get_hand_total(&b.deck).cmp(&BlackJack::get_hand_total(&a.deck))
+        });
+
+        let highest = BlackJack::get_hand_total(&post_players[0].deck);
+
+        for player in post_players {
+            if BlackJack::get_hand_total(&player.deck) == highest {
+                winners.push(player);
+            }
+        }
+
+        console_clear!();
+        header_start!();
+        if winners.is_empty() {
+            println!("There were no winners, all of them busted");
+        } else {
+            println!("Winners are:");
+
+            for player in winners {
+                println!(
+                    "{} with a total score of {}",
+                    player.name,
+                    BlackJack::get_hand_total(&player.deck)
+                );
+            }
+        }
+
+        header_end!();
+        prompt!("Press enter to exit...");
+
+        std::process::exit(0);
     }
 
     fn get_players(&self) -> &Vec<Player> {
